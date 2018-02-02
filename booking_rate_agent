@@ -1,0 +1,38 @@
+#! /usr/bin/env ruby
+
+# New Relic plugin to monitor FareHarbor booking rate.
+
+require "rubygems"
+require "bundler/setup"
+require "newrelic_plugin"
+require "pg"
+
+module BookingRateAgent
+
+  class Agent < NewRelic::Plugin::Agent::Base
+
+    agent_guid "com.fareharbor.booking_rate"
+    agent_version "1.0.1"
+    agent_config_options :pg_host, :pg_port, :pg_database, :pg_username, :pg_password, :environment
+    agent_human_labels("Booking Rate Agent") { "#{environment}" }
+
+    def get_booking_rate()
+      connection = PGconn.open(:host => pg_host, :port => pg_port, :dbname => pg_database, :user => pg_username, :password => pg_password)
+
+      response = connection.exec("SELECT count(*) from charter_booking where original_created_at > now() - interval '10 seconds'")
+      return response.getvalue(0,0) # '1'
+    end
+
+    def poll_cycle
+        report_metric "BookingRate/all", "Value", get_booking_rate()
+    end
+
+  end
+
+  # Register this agent with the component.
+  NewRelic::Plugin::Setup.install_agent :booking_rate, BookingRateAgent
+
+  # Launch the agent; this never returns.
+  NewRelic::Plugin::Run.setup_and_run
+
+end
