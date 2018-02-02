@@ -16,15 +16,26 @@ module BookingRateAgent
     agent_config_options :pg_host, :pg_port, :pg_database, :pg_username, :pg_password, :environment
     agent_human_labels("Booking Rate Agent") { "#{environment}" }
 
-    def get_booking_rate()
+    def query_db(query)
       connection = PGconn.open(:host => pg_host, :port => pg_port, :dbname => pg_database, :user => pg_username, :password => pg_password)
+      response = connection.exec(query)
+      return response.getvalue(0,0)
+    end
 
-      response = connection.exec("SELECT count(*) from charter_booking where original_created_at > now() - interval '10 seconds'")
-      return response.getvalue(0,0) # '1'
+    def get_online_booking_count()
+      return query_db("SELECT count(*) from charter_booking where original_created_at > now() - interval '10 seconds' and original_user_id is NULL")
+    end
+
+    def get_direct_booking_count()
+      return query_db("SELECT count(*) from charter_booking where original_created_at > now() - interval '10 seconds' and original_user_id is NOT NULL")
     end
 
     def poll_cycle
-        report_metric "BookingRate/all", "Value", get_booking_rate()
+      online_bookings = get_online_booking_count()
+      direct_bookings = get_direct_booking_count()
+      report_metric "BookingRate/online", "Value", online_bookings
+      report_metric "BookingRate/direct", "Value", direct_bookings
+      report_metric "BookingRate/all", "Value", online_bookings + direct_bookings
     end
 
   end
