@@ -26,16 +26,22 @@ module BookingRateAgent
       return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NULL")
     end
 
+    def get_affiliate_booking_count()
+      return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NOT NULL and affiliation_id IS NOT NULL")
+    end
+
     def get_direct_booking_count()
-      return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NOT NULL")
+      return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NOT NULL and affiliation_id IS NULL")
     end
 
     def poll_cycle
-      online_bookings = get_online_booking_count()
-      direct_bookings = get_direct_booking_count()
-      report_metric "BookingRate/online", "Value", online_bookings
-      report_metric "BookingRate/direct", "Value", direct_bookings
-      report_metric "BookingRate/all", "Value", online_bookings + direct_bookings
+      online_bookings_count = get_online_booking_count()
+      affiliate_bookings_count = get_affiliate_booking_count()
+      direct_bookings_count = get_direct_booking_count()
+      report_metric "BookingRate/online", "Value", online_bookings_count
+      report_metric "BookingRate/affiliate", "Value", affiliate_bookings_count
+      report_metric "BookingRate/direct", "Value", direct_bookings_count
+      report_metric "BookingRate/all", "Value", online_bookings_count + affiliate_bookings_count + direct_bookings_count
     end
 
   end
