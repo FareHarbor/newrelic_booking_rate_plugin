@@ -23,11 +23,11 @@ module BookingRateAgent
     end
 
     def get_online_booking_count()
-      return query_db("SELECT count(*) from charter_booking where original_created_at > now() - interval '10 seconds' and original_user_id is NULL")
+      return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NULL")
     end
 
     def get_direct_booking_count()
-      return query_db("SELECT count(*) from charter_booking where original_created_at > now() - interval '10 seconds' and original_user_id is NOT NULL")
+      return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NOT NULL")
     end
 
     def poll_cycle
