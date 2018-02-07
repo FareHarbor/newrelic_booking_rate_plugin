@@ -14,3 +14,5 @@ agents:
     pg_database: 'db'
     pg_username: 'admin'
     pg_password: '********'
+    queries:
+      - "SELECT COUNT(*), type FROM example_table GROUP BY type"

@@ -13,35 +13,32 @@ module BookingRateAgent
 
     agent_guid "com.fareharbor.booking_rate"
     agent_version "1.0.1"
-    agent_config_options :pg_host, :pg_port, :pg_database, :pg_username, :pg_password, :environment
+    agent_config_options :pg_host, :pg_port, :pg_database, :pg_username, :pg_password, :environment, :metrics
     agent_human_labels("Booking Rate Agent") { "#{environment}" }
 
-    def query_db(query)
-      connection = PGconn.open(:host => pg_host, :port => pg_port, :dbname => pg_database, :user => pg_username, :password => pg_password)
-      response = connection.exec(query)
-      return response.getvalue(0,0)
-    end
-
-    def get_online_booking_count()
-      return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NULL")
-    end
-
-    def get_affiliate_booking_count()
-      return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NOT NULL and affiliation_id IS NOT NULL")
-    end
-
-    def get_direct_booking_count()
-      return query_db("SELECT count(*) FROM charter_booking WHERE original_created_at > now() - interval '1 minute' AND original_user_id IS NOT NULL and affiliation_id IS NULL")
-    end
-
     def poll_cycle
-      online_bookings_count = get_online_booking_count()
-      affiliate_bookings_count = get_affiliate_booking_count()
-      direct_bookings_count = get_direct_booking_count()
-      report_metric "BookingRate/online", "Value", online_bookings_count
-      report_metric "BookingRate/affiliate", "Value", affiliate_bookings_count
-      report_metric "BookingRate/direct", "Value", direct_bookings_count
-      report_metric "BookingRate/all", "Value", online_bookings_count + affiliate_bookings_count + direct_bookings_count
+      connection = PGconn.open(:host => pg_host, :port => pg_port, :dbname => pg_database, :user => pg_username, :password => pg_password)
+
+      for metric in metrics do
+        metric_total = 0
+        response = connection.exec(metric['query'])
+
+        # This assumes the query uses 1 aggregate and groups by 0 or 1 values.
+        if response.nfields == 1
+          metric_total = response.getvalue(0, 0)
+        else
+          for i in 0..response.ntuples
+            aggregate_value = response.getvalue(i, 0)
+            group = response.getvalue(i, 1)
+            metric_total += aggregate_value
+            report_metric "BookingRate/#{metric['name']}_#{group}", "Value", aggregate_value
+          end
+        end
+
+        report_metric "BookingRate/#{metric['name']}_total", "Value", metric_total
+      end
+
+      connection.close()
     end
 
   end
