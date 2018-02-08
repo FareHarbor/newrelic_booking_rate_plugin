@@ -24,10 +24,10 @@ module BookingRateAgent
         response = connection.exec(metric['query'])
 
         # This assumes the query uses 1 aggregate and groups by 0 or 1 values.
-        if response.nfields == 1
+        if response.nfields == 1 and response.ntuples == 1
           metric_total = response.getvalue(0, 0)
         else
-          for i in 0..response.ntuples
+          for i in 0..response.ntuples - 1
             aggregate_value = response.getvalue(i, 0)
             group = response.getvalue(i, 1)
             metric_total += aggregate_value
