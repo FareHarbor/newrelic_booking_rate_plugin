@@ -25,10 +25,10 @@ module BookingRateAgent
 
         # This assumes the query uses 1 aggregate and groups by 0 or 1 values.
         if response.nfields == 1 and response.ntuples == 1
-          metric_total = response.getvalue(0, 0)
+          metric_total = response.getvalue(0, 0).to_i
         else
           for i in 0..response.ntuples - 1
-            aggregate_value = response.getvalue(i, 0)
+            aggregate_value = response.getvalue(i, 0).to_i
             group = response.getvalue(i, 1)
             metric_total += aggregate_value
             report_metric "BookingRate/#{metric['name']}_#{group}", "Value", aggregate_value
