@@ -9,10 +9,14 @@ newrelic:
 agents:
   booking_rate:
     environment: 'development'
-    pg_host: '127.0.0.1'
-    pg_port: 5432
-    pg_database: 'db'
-    pg_username: 'admin'
-    pg_password: '********'
-    queries:
-      - "SELECT COUNT(*), type FROM example_table GROUP BY type"
+    databases:
+      replica:
+        host: '127.0.0.1'
+        port: 5432
+        database: 'db'
+        username: 'admin'
+        password: '********'
+    metrics:
+      - name: "Example query"
+        database: replica  # "replica" by default
+        query: "SELECT COUNT(*), type FROM example_table GROUP BY type"

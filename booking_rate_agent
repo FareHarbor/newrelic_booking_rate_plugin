@@ -13,14 +13,26 @@ module BookingRateAgent
 
     agent_guid "com.fareharbor.booking_rate"
     agent_version "1.0.1"
-    agent_config_options :pg_host, :pg_port, :pg_database, :pg_username, :pg_password, :environment, :metrics
+    agent_config_options :databases, :environment, :metrics
     agent_human_labels("Booking Rate Agent") { "#{environment}" }
 
     def poll_cycle
-      connection = PGconn.open(:host => pg_host, :port => pg_port, :dbname => pg_database, :user => pg_username, :password => pg_password)
+      connections = {}
+
+      for db_name in databases.keys do
+        db = databases[db_name]
+        connections[db_name] = PGconn.open(
+          :host => db["host"],
+          :port => db["port"],
+          :dbname => db["database"],
+          :user => db["username"],
+          :password => db["password"],
+        )
+      end
 
       for metric in metrics do
         metric_total = 0
+        connection = connections[metric.fetch('database', 'replica')]
         response = connection.exec(metric['query'])
 
         # This assumes the query uses 1 aggregate and groups by 0 or 1 values.
@@ -38,7 +50,9 @@ module BookingRateAgent
         report_metric "BookingRate/#{metric['name']}_total", "Value", metric_total
       end
 
-      connection.close()
+      connections.each do |_, conn|
+        conn.close()
+      end
     end
 
   end
